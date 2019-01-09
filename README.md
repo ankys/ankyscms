@@ -7,4 +7,4 @@ CUI-based content management system powered by MacroText.
 
 MIT License
 
-Copyright (c) 2018 Atsushi Nakayasu
+Copyright (c) 2018-2019 Atsushi Nakayasu
