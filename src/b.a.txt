@@ -1,0 +1,20 @@
+bbb
+\$escape
+$$comment2
+$|inline $$$/ end
+$set_command test "$|aaa" "$1$2$3"
+$test kkk
+$dest k.txt
+$$dest l.txt m.txt
+$depend index.html
+$parent index.html
+$title title
+$description description1
+$description description2
+$|\set{eol}{$/}
+\title
+\description
+\parent
+
+
+\files_info{\parent}

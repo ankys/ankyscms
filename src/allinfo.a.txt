@@ -1,0 +1,26 @@
+$depend /*
+$|\sete{format_user}{\setd{user}{\1}\user{name}<\user{email}>(\user{description})}
+$|\set{file_list}{\dsort{\files_info}}
+$|\set{afile_list}{\dsort{\afiles_info}}
+$|\set{ctime_list}{\vmap{\value{\_}{ctime}}{\file_list}}
+$|\set{mtime_list}{\vmap{\value{\_}{mtime}}{\file_list}}
+$|\set{muser_list}{\vmap{\value{\_}{muser}}{\file_list}}
+$|\set{parent_list}{\vmap{\value{\_}{parent}}{\afile_list}}
+$|\set{parents_list}{\dict_get_ancestors_all{\parent_list}}
+$|\set{title_list}{\vmap{\value{\_}{title}}{\afile_list}}
+$|\set{description_list}{\vmap{\value{\_}{description}}{\afile_list}}
+
+ctime_list:
+\join{}{\kvmap{\a:	\b\eol}{\ctime_list}}
+mtime_list:
+\join{}{\kvmap{\a:	\b\eol}{\mtime_list}}
+muser_list:
+\join{}{\kvmap{\a:	\format_user{\b}\eol}{\muser_list}}
+parent_list:
+\join{}{\kvmap{\a:	\b\eol}{\parent_list}}
+parents_list:
+\join{}{\kvmap{\a:	\b\eol}{\parents_list}}
+title_list:
+\join{}{\kvmap{\a:	\b\eol}{\title_list}}
+description_list:
+\join{}{\kvmap{\a:\eol\b}{\description_list}}

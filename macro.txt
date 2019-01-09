@@ -1,0 +1,16 @@
+\set{eol}{
+}
+\set{lang}{ja}
+\set{siteurl}{http://hostname/}
+\set{sitetitle}{sitetitle}
+\sete{ifd}{\if{\def{\1}}{\2}{\3}}
+\sete{ifn}{\if{\and{\def{\1}}{\get{\1}}}{\2}{\3}}
+
+\sete{dict_get_ancestors}{\eval{
+	require("./script/util.js");
+	Object.getAncestors($_[0], $_[1])
+}{\dparse{\1}}{\2}}
+\sete{dict_get_ancestors_all}{\eval{
+	require("./script/util.js");
+	Object.getAncestorsAll($_[0])
+}{\dparse{\1}}}

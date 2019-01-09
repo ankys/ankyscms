@@ -1,0 +1,11 @@
+$RECYCLE.BIN
+.Trashes
+.fseventsd
+.TemporaryItems
+.DS_Store
+\#*\#
+.\#*
+._*
+*~
+*.stackdump
+*.bak

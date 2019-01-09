@@ -1,0 +1,21 @@
+# user_name user_name
+# user_email user@email.com
+# user_description user_description
+
+cache_file acms_cache.txt
+src_dir src
+dest_dir www
+default_file index.html
+delete_extra 1
+allow_system 1
+
+exclude_from exclude.txt
+template default script/default.a.html
+# template feed script/feed.a.html
+mark_file_ext .acms ""
+mark_file_name *.a.txt $1.txt
+mark_file_name *.a.html $1.html default
+mark_file_name *.a.md $1.html default "$macro \set{flag_markdown}{1}"
+# mark_file_path atom.xml atom.xml feed
+
+macro_from macro.txt
