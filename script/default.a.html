@@ -1,7 +1,7 @@
 $depend \parent
 $set_command link "link"
 $$|\tset{flag_markdown title sitetitle author siteauthor keywords sitekeywords description sitedescription copyright sitecopyright}{\repeat{}{64}}
-$|\sete{format_email}{\tset{name domain}{\split{@}{\1}}\name<script>document.write("&#x"+"40;");</script><noscript>&#x40;</noscript>\domain}
+$|\sete{format_email}{\tset{name domain}{\split{@}{\1}}\name<i class="fa fa-at"></i>\domain}
 $|\set{url}{\normalize_url{\combine_url{\file}{\siteurl}}}
 $|\setd{parent_list}{\vmap{\value{\_}{parent}}{\afiles_info}}
 $|\setl{parents}{\reverse{\dict_get_ancestors{\parent_list}{\file}}}\setl{parents}{\filter{\afiles_info{\_}}{\parents}}
@@ -9,6 +9,8 @@ $|\setl{parents}{\reverse{\dict_get_ancestors{\parent_list}{\file}}}\setl{parent
 <head>
 <title>\if{\and{\title}{\sitetitle}}{\title | \sitetitle}{\title\sitetitle}</title>
 <link rel="stylesheet" href="style.css">
+<script src="https://use.fontawesome.com/2f75e41f64.js"></script>
+<script src="main.js"></script>
 </head>
 <body>
 <header>
