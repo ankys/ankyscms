@@ -10,7 +10,6 @@ $|\setl{parents}{\reverse{\dict_get_ancestors{\parent_list}{\file}}}\setl{parent
 <title>\if{\and{\title}{\sitetitle}}{\title | \sitetitle}{\title\sitetitle}</title>
 <link rel="stylesheet" href="style.css">
 <script src="https://use.fontawesome.com/2f75e41f64.js"></script>
-<script src="main.js"></script>
 </head>
 <body>
 <header>
@@ -30,4 +29,5 @@ $$\title
 $$<div>\sprintf{作成日時：%s、最終更新日時：%s、更新者：%s}{\format_time{\ctime}}{\format_time{\mtime}}{\format_user{\muser}}</div>
 <div>Create: <code>\ctime{toUTCString}</code>, Last modified: <code>\mtime{toUTCString}</code> by <code>\muser{name}\if{\muser{email}}{ &lt;\format_email{\muser{email}}&gt;}\if{\muser{description}}{ (\muser{description})}</code>
 </body>
+<script src="main.js"></script>
 </html>
