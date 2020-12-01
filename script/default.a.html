@@ -9,7 +9,6 @@ $|\setl{parents}{\reverse{\dict_get_ancestors{\parent_list}{\file}}}\setl{parent
 <head>
 <title>\if{\and{\title}{\sitetitle}}{\title | \sitetitle}{\title\sitetitle}</title>
 <link rel="stylesheet" href="style.css">
-<script src="https://use.fontawesome.com/2f75e41f64.js"></script>
 </head>
 <body>
 <header>
@@ -19,7 +18,6 @@ $$\title
 </nav>
 <nav id="main-nav2">
 </nav>
-<script type="text/plain" id="path-directory">\get_rel_path{\file}{directory.txt}</script>
 <script type="text/plain" id="main-nav-info">\join{ > }{\parents \file}</script>
 \if{\title}{<h1>\title</h1>}
 </header>
@@ -33,5 +31,7 @@ $$\title
 $$<div>\sprintf{作成日時：%s、最終更新日時：%s、更新者：%s}{\format_time{\ctime}}{\format_time{\mtime}}{\format_user{\muser}}</div>
 <div>Create: <code>\ctime{toUTCString}</code>, Last modified: <code>\mtime{toUTCString}</code> by <code>\muser{name}\if{\muser{email}}{ &lt;\format_email{\muser{email}}&gt;}\if{\muser{description}}{ (\muser{description})}</code>
 </body>
+<script src="https://use.fontawesome.com/2f75e41f64.js"></script>
+<script src="\get_rel_path{\file}{directory.jsonp}"></script>
 <script src="\get_rel_path{\file}{main.js}"></script>
 </html>

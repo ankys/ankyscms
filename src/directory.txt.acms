@@ -1,2 +1,0 @@
-$depend /*
-\import{JSON}\JSON{stringify}{\afiles_info}

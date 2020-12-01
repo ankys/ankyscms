@@ -45,41 +45,32 @@ es.forEach(function(e) {
 });
 
 // navigation
-var ePathDirectory = document.getElementById("path-directory");
-var pathDirectory = ePathDirectory.textContent;
-var url = pathDirectory;
-var xhr = new XMLHttpRequest();
-xhr.addEventListener("load", function(event) {
-	var text = xhr.responseText;
-	var items = JSON.parse(text);
-	for (var path in items) {
-		var item = items[path];
-		item.children = [];
+var items = window.directoryInfoItems;
+for (var path in items) {
+	var item = items[path];
+	item.children = [];
+}
+for (var path in items) {
+	var item = items[path];
+	var parent = items[item.parent];
+	if (defined(parent)) {
+		parent.children.push(path);
 	}
-	for (var path in items) {
-		var item = items[path];
-		var parent = items[item.parent];
-		if (defined(parent)) {
-			parent.children.push(path);
-		}
+}
+console.log(items);
+var eNav = document.getElementById("main-nav2");
+var eNavInfo = document.getElementById("main-nav-info");
+var parents = eNavInfo.textContent.split(" > ");
+parents.forEach(function(path) {
+	var item = items[path];
+	DomCreateElement(document, eNav, "a", { text: item.title || path, href: path, description: item.description });
+	if (items[path].children.length > 0) {
+		DomCreateText(document, eNav, " ");
+		var e = DomCreateElement(document, eNav, "a", { text: ">", href: "javascript:void(0);" });
+		e.addEventListener("click", function(event) {
+			var children = item.children;
+			var block = DomCreateElement(document, eNav, "div", { text: "aaaa", style: { display: "inline-block", position: "absolute", left: event.x, top: event.y } });
+		});
+		DomCreateText(document, eNav, " ");
 	}
-	console.log(items);
-	var eNav = document.getElementById("main-nav2");
-	var eNavInfo = document.getElementById("main-nav-info");
-	var parents = eNavInfo.textContent.split(" > ");
-	parents.forEach(function(path) {
-		var item = items[path];
-		DomCreateElement(document, eNav, "a", { text: item.title || path, href: path, description: item.description });
-		if (items[path].children.length > 0) {
-			DomCreateText(document, eNav, " ");
-			var e = DomCreateElement(document, eNav, "a", { text: ">", href: "javascript:void(0);" });
-			e.addEventListener("click", function(event) {
-				var children = item.children;
-				var block = DomCreateElement(document, eNav, "div", { text: "aaaa", style: { display: "inline-block", position: "absolute", left: event.x, top: event.y } });
-			});
-			DomCreateText(document, eNav, " ");
-		}
-	});
 });
-xhr.open("GET", url);
-xhr.send();
