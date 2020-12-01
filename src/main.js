@@ -64,12 +64,21 @@ var parents = eNavInfo.textContent.split(" > ");
 parents.forEach(function(path) {
 	var item = items[path];
 	DomCreateElement(document, eNav, "a", { text: item.title || path, href: path, description: item.description });
-	if (items[path].children.length > 0) {
+	if (item.children.length > 0) {
 		DomCreateText(document, eNav, " ");
 		var e = DomCreateElement(document, eNav, "a", { text: ">", href: "javascript:void(0);" });
 		e.addEventListener("click", function(event) {
 			var children = item.children;
-			var block = DomCreateElement(document, eNav, "div", { text: "aaaa", style: { display: "inline-block", position: "absolute", left: event.x, top: event.y } });
+			var block = DomCreateElement(document, eNav, "ul", { class: "menu", style: { display: "inline-block", position: "absolute", left: event.x, top: event.y } });
+			children.forEach(function(path) {
+				var item = items[path];
+				var eItem = DomCreateElement(document, block, "li");
+				DomCreateElement(document, eItem, "a", { text: item.title || path, href: path, description: item.description });
+				if (item.children.length > 0) {
+					DomCreateText(document, eItem, " ");
+					var e = DomCreateElement(document, eItem, "a", { text: ">", href: "javascript:void(0);" });
+				}
+			});
 		});
 		DomCreateText(document, eNav, " ");
 	}
