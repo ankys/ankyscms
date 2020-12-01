@@ -61,25 +61,33 @@ console.log(items);
 var eNav = document.getElementById("main-nav2");
 var eNavInfo = document.getElementById("main-nav-info");
 var parents = eNavInfo.textContent.split(" > ");
+function setupItem(e, item) {
+	e.style.display = "inline-block";
+	e.style.position = "relative";
+	var eA = DomCreateElement(document, e, "a", { text: ">", href: "javascript:void(0);" });
+	eA.addEventListener("click", function(event) {
+		console.log(event);
+		var children = item.children;
+		var block = DomCreateElement(document, e, "ul", { class: "menu", style: { display: "inline-block", position: "absolute", left: event.offsetX, top: event.offsetY } });
+		children.forEach(function(path) {
+			var item = items[path];
+			var eItem = DomCreateElement(document, block, "li");
+			DomCreateElement(document, eItem, "a", { text: item.title || path, href: path, description: item.description });
+			if (item.children.length > 0) {
+				DomCreateText(document, eItem, " ");
+				var e = DomCreateElement(document, eItem, "div");
+				setupItem(e, item);
+			}
+		});
+	});
+}
 parents.forEach(function(path) {
 	var item = items[path];
 	DomCreateElement(document, eNav, "a", { text: item.title || path, href: path, description: item.description });
 	if (item.children.length > 0) {
 		DomCreateText(document, eNav, " ");
-		var e = DomCreateElement(document, eNav, "a", { text: ">", href: "javascript:void(0);" });
-		e.addEventListener("click", function(event) {
-			var children = item.children;
-			var block = DomCreateElement(document, eNav, "ul", { class: "menu", style: { display: "inline-block", position: "absolute", left: event.x, top: event.y } });
-			children.forEach(function(path) {
-				var item = items[path];
-				var eItem = DomCreateElement(document, block, "li");
-				DomCreateElement(document, eItem, "a", { text: item.title || path, href: path, description: item.description });
-				if (item.children.length > 0) {
-					DomCreateText(document, eItem, " ");
-					var e = DomCreateElement(document, eItem, "a", { text: ">", href: "javascript:void(0);" });
-				}
-			});
-		});
+		var e = DomCreateElement(document, eNav, "div");
+		setupItem(e, item);
 		DomCreateText(document, eNav, " ");
 	}
 });
