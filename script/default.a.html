@@ -15,8 +15,11 @@ $|\setl{parents}{\reverse{\dict_get_ancestors{\parent_list}{\file}}}\setl{parent
 <header>
 <nav id="main-nav">
 $$\title
-\join{ > }{\map{<a href="\normalize_path{\get_rel_path{\file}{\_}}" description="\afiles_info{\_}{description}">\afiles_info{\_}{title}</a>}{\parents \file}}
+\join{ > }{\map{<a href="\normalize_path{\get_rel_path{\file}{\_}}" description="\afiles_info{\_}{description}">\if{\afiles_info{\_}{title}}{\afiles_info{\_}{title}}{\_}</a>}{\parents \file}}
 </nav>
+<nav id="main-nav2">
+</nav>
+<script type="text/plain" id="path-directory">\get_rel_path{\file}{directory.txt}</script>
 <script type="text/plain" id="main-nav-info">\join{ > }{\parents \file}</script>
 \if{\title}{<h1>\title</h1>}
 </header>
@@ -30,5 +33,5 @@ $$\title
 $$<div>\sprintf{作成日時：%s、最終更新日時：%s、更新者：%s}{\format_time{\ctime}}{\format_time{\mtime}}{\format_user{\muser}}</div>
 <div>Create: <code>\ctime{toUTCString}</code>, Last modified: <code>\mtime{toUTCString}</code> by <code>\muser{name}\if{\muser{email}}{ &lt;\format_email{\muser{email}}&gt;}\if{\muser{description}}{ (\muser{description})}</code>
 </body>
-<script src="main.js"></script>
+<script src="\get_rel_path{\file}{main.js}"></script>
 </html>
