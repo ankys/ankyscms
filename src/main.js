@@ -57,21 +57,21 @@ for (var path in items) {
 		parent.children.push(path);
 	}
 }
-console.log(items);
-var eNav = document.getElementById("main-nav2");
+// console.log(items);
+var eNav = document.getElementById("main-nav");
 var eNavInfo = document.getElementById("main-nav-info");
 var parents = eNavInfo.textContent.split(" > ");
 function setupItem(e, item) {
 	e.style.display = "inline-block";
-	e.style.position = "relative";
+	// e.style.position = "relative";
 	var eA = DomCreateElement(document, e, "a", { text: ">", href: "javascript:void(0);" });
 	eA.addEventListener("click", function(event) {
-		console.log(event);
 		var children = item.children;
-		var block = DomCreateElement(document, e, "ul", { class: "menu", style: { display: "inline-block", position: "absolute", left: event.offsetX, top: event.offsetY } });
+		// var eMenu = DomCreateElement(document, e, "ul", { class: "menu", style: { display: "inline-block", position: "absolute", left: event.offsetX, top: event.offsetY } });
+		var eMenu = DomCreateElement(document, eNav, "ul", { class: "menu", style: { display: "inline-block", position: "absolute", left: event.x, top: event.y } });
 		children.forEach(function(path) {
 			var item = items[path];
-			var eItem = DomCreateElement(document, block, "li");
+			var eItem = DomCreateElement(document, eMenu, "li");
 			DomCreateElement(document, eItem, "a", { text: item.title || path, href: path, description: item.description });
 			if (item.children.length > 0) {
 				DomCreateText(document, eItem, " ");
@@ -81,13 +81,24 @@ function setupItem(e, item) {
 		});
 	});
 }
-parents.forEach(function(path) {
-	var item = items[path];
-	DomCreateElement(document, eNav, "a", { text: item.title || path, href: path, description: item.description });
-	if (item.children.length > 0) {
-		DomCreateText(document, eNav, " ");
-		var e = DomCreateElement(document, eNav, "div");
-		setupItem(e, item);
-		DomCreateText(document, eNav, " ");
+function setupNav() {
+	DomClearChildren(eNav);
+	parents.forEach(function(path) {
+		var item = items[path];
+		DomCreateElement(document, eNav, "a", { text: item.title || path, href: path, description: item.description });
+		if (item.children.length > 0) {
+			DomCreateText(document, eNav, " ");
+			var e = DomCreateElement(document, eNav, "div");
+			setupItem(e, item);
+			DomCreateText(document, eNav, " ");
+		}
+	});
+}
+document.addEventListener("click", function(event) {
+	var e = event.target;
+	var b = e.matches("#main-nav *");
+	if (!b) {
+		setupNav();
 	}
 });
+setupNav();
