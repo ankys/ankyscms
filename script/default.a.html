@@ -14,7 +14,7 @@ $|\setl{parents}{\reverse{\dict_get_ancestors{\parent_list}{\file}}}\setl{parent
 <header>
 <nav id="main-nav">
 $$\title
-\join{ > }{\map{<a href="\normalize_path{\get_rel_path{\file}{\_}}" description="\afiles_info{\_}{description}">\if{\afiles_info{\_}{title}}{\afiles_info{\_}{title}}{\_}</a>}{\parents \file}}
+\join{ > }{\map{<a href="\normalize_path{\get_rel_path{\file}{\_}}" description="\afiles_info{\_}{description}">\afiles_info{\_}{title}</a>}{\parents \file}}
 </nav>
 <script type="text/plain" id="main-nav-info">\join{ > }{\parents \file}</script>
 \if{\title}{<h1>\title</h1>}
