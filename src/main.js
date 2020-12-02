@@ -127,7 +127,7 @@ function setupItem(e, item) {
 	eA.addEventListener("click", function(event) {
 		var children = item.children;
 		// var eMenu = DomCreateElement(document, e, "ul", { class: "menu", style: { display: "inline-block", position: "absolute", left: event.offsetX, top: event.offsetY } });
-		var eMenu = DomCreateElement(document, eNavMenus, "ul", { class: "menu", style: { display: "inline-block", position: "absolute", left: event.x, top: event.y } });
+		var eMenu = DomCreateElement(document, eNavMenus, "ul", { class: "menu", style: { display: "inline-block", position: "absolute", left: event.x + "px", top: event.y + "px" } });
 		children.forEach(function(path) {
 			var item = items[path];
 			var title = item.title || normalizePath(getRelPath(pathParent, path));
