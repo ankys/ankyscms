@@ -120,11 +120,12 @@ var eNavInfo = document.getElementById("main-nav-info");
 var parents = eNavInfo.textContent.split(" > ");
 var pathRoot = parents[parents.length - 1];
 function setupItem(e, item) {
-	e.style.display = "inline-block";
+	// e.style.display = "inline-block";
 	// e.style.position = "relative";
 	var pathParent = item.path;
-	var eA = DomCreateElement(document, e, "span", { text: ">" });
-	eA.addEventListener("click", function(event) {
+	// var eA = DomCreateElement(document, e, "span", { text: ">" });
+	DomCreateText(document, e, ">");
+	e.addEventListener("click", function(event) {
 		var children = item.children;
 		// var eMenu = DomCreateElement(document, e, "ul", { class: "menu", style: { display: "inline-block", position: "absolute", left: event.offsetX, top: event.offsetY } });
 		var eMenu = DomCreateElement(document, eNavMenus, "ul", { class: "menu", style: { display: "inline-block", position: "absolute", left: event.x + "px", top: event.y + "px" } });
@@ -136,7 +137,7 @@ function setupItem(e, item) {
 			DomCreateElement(document, eItem, "a", { text: title, href: url, description: item.description });
 			if (item.children.length > 0) {
 				DomCreateText(document, eItem, " ");
-				var e = DomCreateElement(document, eItem, "div");
+				var e = DomCreateElement(document, eItem, "span");
 				setupItem(e, item);
 			}
 		});
@@ -152,7 +153,7 @@ for (var i = 0; i < parents.length; i++) {
 	DomCreateElement(document, eNav, "a", { text: title, href: url, description: item.description });
 	if (item.children.length > 0) {
 		DomCreateText(document, eNav, " ");
-		var e = DomCreateElement(document, eNav, "div");
+		var e = DomCreateElement(document, eNav, "span");
 		setupItem(e, item);
 		DomCreateText(document, eNav, " ");
 	}
