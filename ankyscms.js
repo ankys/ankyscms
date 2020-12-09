@@ -72,6 +72,30 @@ function TSVEscape(obj) {
 	var str2 = str.replace(re, escape);
 	return "\"" + str2 + "\"";
 }
+function TSVFDump(table, fields) {
+	// return TextDumpFieldedTable(table, fields, "\n", "\t", identity, TSVEscape, true);
+	var delimiter = "\n";
+	var separator = "\t";
+	var escapeValue = TSVEscape;
+	var fieldsE = fields.map(function(field) {
+		var fieldE = escapeValue(field);
+		return fieldE;
+	});
+	var line0 = fieldsE.join(separator);
+	var linesE = table.map(function(row) {
+		var valuesE = fields.map(function(field) {
+			var value = row[field];
+			var valueE = value == undefined || value == null ? "" : escapeValue(value);
+			return valueE;
+		});
+		var line = valuesE.join(separator);
+		return line;
+	});
+	linesE.unshift(line0);
+	linesE.push("");
+	var text = linesE.join(delimiter);
+	return text;
+}
 function TSVFKDump(table, fields, keyName) {
 	// return TextDumpFieldedTable(table, fields, "\n", "\t", identity, TSVEscape, true);
 	var delimiter = "\n";
@@ -119,6 +143,39 @@ function TSVUnescape(str) {
 	var str2 = m[1];
 	var re = /\\r|\\n|\\t|\\\\/g;
 	return str2.replace(re, unescape);
+}
+function TSVFParse(text, fields) {
+	// return TextParseFieldedTable(text, fields, /\x0D\x0A|\x0D|\x0A/g, "\t", identity, TSVUnescape, true);
+	var delimiter = "\n";
+	var separator = "\t";
+	var unescapeValue = TSVUnescape;
+	var lines = text.split(delimiter);
+	if (lines[lines.length - 1] === "") {
+		lines.pop();
+	}
+	var line0 = lines.shift();
+	var heads = line0.split(separator);
+	var headsU = heads.map(function(head) {
+		var headU = unescapeValue(head);
+		return headU;
+	});
+	var mapFieldIndex = {};
+	fields.forEach(function(field) {
+		var index = headsU.indexOf(field);
+		mapFieldIndex[field] = index;
+	});
+	var table = lines.map(function(line) {
+		var words = line.split(separator);
+		var obj = {};
+		fields.forEach(function(field) {
+			var index = mapFieldIndex[field];
+			var word = words[index];
+			var wordU = word === undefined ? null : unescapeValue(word);
+			obj[field] = wordU;
+		});
+		return obj;
+	});
+	return table;
 }
 function TSVFKParse(text, fields, keyName) {
 	// return TextParseFieldedTable(text, fields, /\x0D\x0A|\x0D|\x0A/g, "\t", identity, TSVUnescape, true);
@@ -599,8 +656,9 @@ var macrosDefault = [];
 var userId = 0;
 var userName = process.env.USERNAME || process.env.USER || "";
 var hostName = process.env.HOSTNAME || process.env.HOST || "";
-var userEmail = userName + "@" + hostName;
-var userDescription = "";
+var currentUserName = userName;
+var currentUserEmail = userName + "@" + hostName;
+var currentUserDescription = "";
 // exclude_rules : [rule]
 // rule = (exclude : boolean) * (globs : regex list)
 var excludeRules = [];
@@ -620,8 +678,11 @@ var configfiles = [];
 var configafiles = [];
 var lmconfigfile;
 var lmconfigafile;
-// last_info : (check_time)
-var lastInfo = {};
+// attributesHistory = [attribute : (time, name, email, description)]
+var attributesHistory = [];
+// filesHistory = [file : (rpath, attribute, digest)]
+var filesHistory = [];
+var lastCheckTime = null;
 // users = id -> user : (name, email, description)
 var users = {};
 // templates : name -> (rpath, file, afile, commands, cache)
@@ -704,11 +765,11 @@ function loadConfigLine(line, eol, tag) {
 		}
 		macrosDefault.push(macro);
 	} else if (name === "user_name") {
-		userName = value;
+		currentUserName = value;
 	} else if (name === "user_email") {
-		userEmail = value;
+		currentUserEmail = value;
 	} else if (name === "user_description") {
-		userDescription = value;
+		currentUserDescription = value;
 	} else if (m = name.match(/^(exclude|include)(|_from)$/)) {
 		var exclude = m[1] === "exclude";
 		var globs;
@@ -778,9 +839,15 @@ function loadCache(path, tag) {
 
 	var kvlist = SkvtextParse(text);
 	var kvobj = KvlistToObject(kvlist);
-	var lastCheckTime = kvobj.last_check_time;
-	if (defined(lastCheckTime)) {
-		lastInfo.checkTime = Number(lastCheckTime);
+	var attributesT = kvobj.attributes;
+	if (defined(attributesT)) {
+		attributesHistory = TSVFParse(attributesT, ["time", "name", "email", "description"]);
+		attributesHistory.forEach(function(attribute) {
+			attribute.time = Number(attribute.time);
+		});
+		if (attributesHistory.length > 0) {
+			lastCheckTime = attributesHistory[attributesHistory.length - 1].time;
+		}
 	}
 	var usersT = kvobj.users;
 	if (defined(users)) {
@@ -804,7 +871,7 @@ function loadCache(path, tag) {
 function saveCache(path, tag) {
 	var kvlist = [];
 	kvlist.push(
-		"last_check_time", currentTime,
+		"attributes", TSVFDump(attributesHistory, ["time", "name", "email", "description"]),
 		"users", TSVFKDump(users, ["name", "email", "description"], "id"),
 		"files", TSVFKDump(files, ["ctime", "mtime", "muser", "digest"], "path"),
 		"afiles", TSVFKDump(afiles, ["cache"], "path"),
@@ -977,7 +1044,7 @@ function checkFile(rpath, tag) {
 		digest = file.digest;
 		
 		var c_mtime = FS.statSync(rpath).mtimeMs;
-		if (!defined(lastInfo.checkTime) || c_mtime > lastInfo.checkTime) {
+		if (lastCheckTime && c_mtime > lastCheckTime) {
 			data = loadFile(rpath, tag);
 			if (!defined(data)) return [];
 
@@ -1676,8 +1743,10 @@ function deleteExtra(rpath, tag) {
 
 	loadCache(cacheFile);
 
-	userId = registerUser(userName, userEmail, userDescription);
-	callback("USER", undefined, [userName, userEmail, userDescription]);
+	userId = registerUser(currentUserName, currentUserEmail, currentUserDescription);
+	callback("USER", undefined, [currentUserName, currentUserEmail, currentUserDescription]);
+	var attribute = { time: currentTime, name: currentUserName, email: currentUserEmail, description: currentUserDescription };
+	attributesHistory.push(attribute);
 	
 	initializeMacroText();
 	checkConfigFiles();
