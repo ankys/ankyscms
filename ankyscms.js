@@ -674,18 +674,19 @@ var defaultFile = "index.html";
 var flagDeleteExtra = false;
 
 // caches
+var currentAttributeIndex = 0;
 var configfiles = [];
 var configafiles = [];
 var lmconfigfile;
 var lmconfigafile;
-// attributesHistory = [attribute : (time, name, email, description)]
+// attributes_history = [attribute : (time, name, email, description)]
 var attributesHistory = [];
-// filesHistory = [file : (rpath, attribute, digest)]
+// files_history = [file : (rpath, attribute, digest)]
 var filesHistory = [];
 var lastCheckTime = null;
 // users = id -> user : (name, email, description)
 var users = {};
-// templates : name -> (rpath, file, afile, commands, cache)
+// templates : name -> template : (rpath, file, afile, commands, cache)
 var templates = {};
 // files : rpath -> file : (ctime, mtime, muser, digest, update, checked)
 var files = {};
@@ -849,6 +850,13 @@ function loadCache(path, tag) {
 			lastCheckTime = attributesHistory[attributesHistory.length - 1].time;
 		}
 	}
+	var filesT = kvobj["files_history"];
+	if (defined(filesT)) {
+		filesHistory = TSVFParse(filesT, ["path", "attribute", "digest"]);
+		filesHistory.forEach(function(file) {
+			file.attribute = Number(file.attribute);
+		});
+	}
 	var usersT = kvobj.users;
 	if (defined(users)) {
 		users = TSVFKParse(usersT, ["name", "email", "description"], "id");
@@ -863,19 +871,19 @@ function loadCache(path, tag) {
 			file.muser = Number(file.muser);
 		}
 	}
-	var afilesT = kvobj.afiles;
+	var afilesT = kvobj["afiles"];
 	if (defined(afiles)) {
 		afiles = TSVFKParse(afilesT, ["cache"], "path");
 	}
 }
 function saveCache(path, tag) {
-	var kvlist = [];
-	kvlist.push(
+	var kvlist = [
 		"attributes_history", TSVFDump(attributesHistory, ["time", "name", "email", "description"]),
+		"files_history", TSVFDump(filesHistory, ["path", "attribute", "digest"]),
 		"users", TSVFKDump(users, ["name", "email", "description"], "id"),
 		"files", TSVFKDump(files, ["ctime", "mtime", "muser", "digest"], "path"),
 		"afiles", TSVFKDump(afiles, ["cache"], "path"),
-	);
+	];
 	var text = SkvtextDump(kvlist);
 	saveText(path, text, "utf8", tag, "SAVECACHE", "NGSAVECACHE");
 }
@@ -1077,6 +1085,8 @@ function checkFile(rpath, tag) {
 
 			digest = calcMd5Base64(data);
 		}
+		var file = { path: rpath, attribute: currentAttributeIndex, digest: digest };
+		filesHistory.push(file);
 	}
 	
 	var file = { ctime: ctime, mtime: mtime, muser: muser, digest: digest, update: update, checked: true };
@@ -1747,6 +1757,7 @@ function deleteExtra(rpath, tag) {
 	callback("USER", undefined, [currentUserName, currentUserEmail, currentUserDescription]);
 	var attribute = { time: currentTime, name: currentUserName, email: currentUserEmail, description: currentUserDescription };
 	attributesHistory.push(attribute);
+	currentAttributeIndex = attributesHistory.length - 1;
 	
 	initializeMacroText();
 	checkConfigFiles();
