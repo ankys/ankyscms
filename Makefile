@@ -6,4 +6,4 @@ all: ankyscms.js
 	node ankyscms.js
 
 clean:
-	rm -rf www acms_cache.txt
+	rm -rf www acms_cache.dat

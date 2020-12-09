@@ -839,7 +839,7 @@ function loadCache(path, tag) {
 
 	var kvlist = SkvtextParse(text);
 	var kvobj = KvlistToObject(kvlist);
-	var attributesT = kvobj.attributes;
+	var attributesT = kvobj["attributes_history"];
 	if (defined(attributesT)) {
 		attributesHistory = TSVFParse(attributesT, ["time", "name", "email", "description"]);
 		attributesHistory.forEach(function(attribute) {
@@ -871,7 +871,7 @@ function loadCache(path, tag) {
 function saveCache(path, tag) {
 	var kvlist = [];
 	kvlist.push(
-		"attributes", TSVFDump(attributesHistory, ["time", "name", "email", "description"]),
+		"attributes_history", TSVFDump(attributesHistory, ["time", "name", "email", "description"]),
 		"users", TSVFKDump(users, ["name", "email", "description"], "id"),
 		"files", TSVFKDump(files, ["ctime", "mtime", "muser", "digest"], "path"),
 		"afiles", TSVFKDump(afiles, ["cache"], "path"),
