@@ -2,7 +2,7 @@
 # user_email user@email.com
 # user_description user_description
 
-cache_file acms_cache.txt
+cache_file acms_cache.dat
 src_dir src
 dest_dir www
 default_file index.html

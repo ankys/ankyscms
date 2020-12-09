@@ -590,7 +590,7 @@ function deleteFile(path, tag, code, code_ng) {
 
 // config
 var configFile = "acms_config.txt";
-var cacheFile = "acms_cache.txt";
+var cacheFile = "acms_cache.dat";
 var currentTime = Date.now();
 var flagAllowSystem = false;
 // default_macros : [macro]
