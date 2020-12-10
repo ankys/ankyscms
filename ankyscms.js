@@ -680,7 +680,7 @@ var configafiles = [];
 var lmconfigfile;
 var lmconfigafile;
 var lastCheckTime = null;
-// logins_history = [login : (time, name, email, description)]
+// logins = [login : (time, name, email, description)]
 var logins = [];
 // users = id -> user : (name, email, description)
 var users = {};
@@ -1398,6 +1398,14 @@ function checkSrc(srcfile, tag) {
 		return [destfile];
 	}
 
+	var history = file.logins;
+	var create = history[0];
+	var modify = history[history.length - 1];
+	var ctime = create.time;
+	var cuser = create.user;
+	var mtime = modify.time;
+	var muser = modify.user;
+
 	// afile
 	var templateInfo = afile.templateInfo;
 	var argumentInfo = afile.argumentInfo;
@@ -1415,11 +1423,11 @@ function checkSrc(srcfile, tag) {
 
 	var mtstate = mt.saveMacros();
 	mt.addMacro("src_file", path);
-	mt.addMacro("src_ctime", new Date(file.ctime));
-	mt.addMacro("src_ctimev", file.ctime);
-	mt.addMacro("src_mtime", new Date(file.mtime));
-	mt.addMacro("src_mtimev", file.mtime);
-	mt.addMacro("src_muser", users[file.muser] || {});
+	mt.addMacro("src_ctime", new Date(ctime));
+	mt.addMacro("src_ctimev", ctime);
+	mt.addMacro("src_mtime", new Date(mtime));
+	mt.addMacro("src_mtimev", mtime);
+	mt.addMacro("src_muser", muser);
 	mt.addMacro("default_dest", destDefault);
 
 	// get macro
@@ -1739,6 +1747,9 @@ function deleteExtra(rpath, tag) {
 	var login = { time: currentTime, name: currentUserName, email: currentUserEmail, description: currentUserDescription };
 	logins.push(login);
 	currentLoginIndex = logins.length - 1;
+	logins.forEach(function(login) {
+		login.user = { name: login.name, email: login.email, description: login.description };
+	});
 	
 	initializeMacroText();
 	checkConfigFiles();
