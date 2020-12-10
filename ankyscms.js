@@ -679,16 +679,14 @@ var configfiles = [];
 var configafiles = [];
 var lmconfigfile;
 var lmconfigafile;
+var lastCheckTime = null;
 // logins_history = [login : (time, name, email, description)]
 var logins = [];
-// files = rpath -> file : (digest, history)]
-var filesHistory = [];
-var lastCheckTime = null;
 // users = id -> user : (name, email, description)
 var users = {};
 // templates : name -> template : (rpath, file, afile, commands, cache)
 var templates = {};
-// files : rpath -> file : (ctime, mtime, muser, digest, update, checked)
+// files = rpath -> file : (digest, history, logins, update, checked)
 var files = {};
 // afiles : rpath -> afile : (cache, info, checked)
 // info : (macro, dest, title, description, parent, depend)
@@ -834,8 +832,8 @@ function loadConfigLine(line, eol, tag) {
 	}
 }
 
-function loadCache(path, tag) {
-	var text = loadText(path, "utf8", tag, "LOADCACHE", "NGLOADCACHE");
+function loadCache(pathCache, tag) {
+	var text = loadText(pathCache, "utf8", tag, "LOADCACHE", "NGLOADCACHE");
 	if (!defined(text)) return;
 
 	var kvlist = SkvtextParse(text);
@@ -850,25 +848,16 @@ function loadCache(path, tag) {
 			lastCheckTime = logins[logins.length - 1].time;
 		}
 	}
-	var filesT = kvobj["files_history"];
-	if (defined(filesT)) {
-		filesHistory = TSVFParse(filesT, ["path", "login", "digest"]);
-		filesHistory.forEach(function(file) {
-			file.login = Number(file.login);
-		});
-	}
 	var usersT = kvobj.users;
 	if (defined(users)) {
 		users = TSVFKParse(usersT, ["name", "email", "description"], "id");
 	}
-	var filesT = kvobj.files;
+	var filesT = kvobj["files"];
 	if (defined(files)) {
-		files = TSVFKParse(filesT, ["ctime", "mtime", "muser", "digest"], "path");
+		files = TSVFKParse(filesT, ["digest", "history"], "path");
 		for (var path in files) {
 			var file = files[path];
-			file.ctime = Number(file.ctime);
-			file.mtime = Number(file.mtime);
-			file.muser = Number(file.muser);
+			file.logins = file.history.split(",").map(Number);
 		}
 	}
 	var afilesT = kvobj["afiles"];
@@ -876,16 +865,19 @@ function loadCache(path, tag) {
 		afiles = TSVFKParse(afilesT, ["cache"], "path");
 	}
 }
-function saveCache(path, tag) {
+function saveCache(pathCache, tag) {
+	for (var path in files) {
+		var file = files[path];
+		file.history = file.logins.join(",");
+	}
 	var kvlist = [
 		"logins", TSVFDump(logins, ["time", "name", "email", "description"]),
-		"files_history", TSVFDump(filesHistory, ["path", "login", "digest"]),
 		"users", TSVFKDump(users, ["name", "email", "description"], "id"),
-		"files", TSVFKDump(files, ["ctime", "mtime", "muser", "digest"], "path"),
+		"files", TSVFKDump(files, ["digest", "history"], "path"),
 		"afiles", TSVFKDump(afiles, ["cache"], "path"),
 	];
 	var text = SkvtextDump(kvlist);
-	saveText(path, text, "utf8", tag, "SAVECACHE", "NGSAVECACHE");
+	saveText(pathCache, text, "utf8", tag, "SAVECACHE", "NGSAVECACHE");
 }
 
 function searchUsers(name, email, description) {
@@ -1037,8 +1029,7 @@ function scanCommandLine(line, eol, commands, infos, caches, values, tag) {
 
 function checkFile(rpath, tag) {
 	callback("CHECKFILE", tag, [rpath]);
-	var data, ctime, mtime, muser, digest;
-	var update;
+	var data, digest, logins, update;
 	// check update
 	var file = files[rpath];
 	if (defined(file)) {
@@ -1046,10 +1037,8 @@ function checkFile(rpath, tag) {
 			// checked
 			return [file];
 		}
-		ctime = file.ctime;
-		mtime = file.mtime;
-		muser = file.muser;
 		digest = file.digest;
+		logins = file.logins;
 		
 		var c_mtime = FS.statSync(rpath).mtimeMs;
 		if (lastCheckTime && c_mtime > lastCheckTime) {
@@ -1070,26 +1059,23 @@ function checkFile(rpath, tag) {
 			callback("NOTEDITEDFILE", tag, [rpath]);
 		}
 	} else {
+		logins = [];
 		update = true;
 		callback("NEWFILE", tag, [rpath]);
 	}
 	
 	// update file
 	if (update) {
-		ctime = defined(ctime) ? ctime : currentTime;
-		mtime = currentTime;
-		muser = userId;
 		if (!defined(digest)) {
 			data = loadFile(rpath, tag);
 			if (!defined(data)) return [];
 
 			digest = calcMd5Base64(data);
 		}
-		var file = { path: rpath, login: currentLoginIndex, digest: digest };
-		filesHistory.push(file);
+		logins.push(currentLoginIndex);
 	}
 	
-	var file = { ctime: ctime, mtime: mtime, muser: muser, digest: digest, update: update, checked: true };
+	var file = { digest: digest, logins: logins, update: update, checked: true };
 	files[rpath] = file;
 	return [file, data];
 }
