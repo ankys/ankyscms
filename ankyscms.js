@@ -832,8 +832,8 @@ function loadConfigLine(line, eol, tag) {
 	}
 }
 
-function loadCache(pathCache, tag) {
-	var text = loadText(pathCache, "utf8", tag, "LOADCACHE", "NGLOADCACHE");
+function loadCache(path, tag) {
+	var text = loadText(path, "utf8", tag, "LOADCACHE", "NGLOADCACHE");
 	if (!defined(text)) return;
 
 	var kvlist = SkvtextParse(text);
@@ -855,21 +855,13 @@ function loadCache(pathCache, tag) {
 	var filesT = kvobj["files"];
 	if (defined(files)) {
 		files = TSVFKParse(filesT, ["digest", "history"], "path");
-		for (var path in files) {
-			var file = files[path];
-			file.logins = file.history.split(",").map(Number);
-		}
 	}
 	var afilesT = kvobj["afiles"];
 	if (defined(afiles)) {
 		afiles = TSVFKParse(afilesT, ["cache"], "path");
 	}
 }
-function saveCache(pathCache, tag) {
-	for (var path in files) {
-		var file = files[path];
-		file.history = file.logins.join(",");
-	}
+function saveCache(path, tag) {
 	var kvlist = [
 		"logins", TSVFDump(logins, ["time", "name", "email", "description"]),
 		"users", TSVFKDump(users, ["name", "email", "description"], "id"),
@@ -877,7 +869,7 @@ function saveCache(pathCache, tag) {
 		"afiles", TSVFKDump(afiles, ["cache"], "path"),
 	];
 	var text = SkvtextDump(kvlist);
-	saveText(pathCache, text, "utf8", tag, "SAVECACHE", "NGSAVECACHE");
+	saveText(path, text, "utf8", tag, "SAVECACHE", "NGSAVECACHE");
 }
 
 function searchUsers(name, email, description) {
@@ -1029,7 +1021,7 @@ function scanCommandLine(line, eol, commands, infos, caches, values, tag) {
 
 function checkFile(rpath, tag) {
 	callback("CHECKFILE", tag, [rpath]);
-	var data, digest, logins, update;
+	var data, digest, history, update;
 	// check update
 	var file = files[rpath];
 	if (defined(file)) {
@@ -1038,7 +1030,7 @@ function checkFile(rpath, tag) {
 			return [file];
 		}
 		digest = file.digest;
-		logins = file.logins;
+		history = file.history;
 		
 		var c_mtime = FS.statSync(rpath).mtimeMs;
 		if (lastCheckTime && c_mtime > lastCheckTime) {
@@ -1059,7 +1051,7 @@ function checkFile(rpath, tag) {
 			callback("NOTEDITEDFILE", tag, [rpath]);
 		}
 	} else {
-		logins = [];
+		history = "";
 		update = true;
 		callback("NEWFILE", tag, [rpath]);
 	}
@@ -1072,10 +1064,13 @@ function checkFile(rpath, tag) {
 
 			digest = calcMd5Base64(data);
 		}
-		logins.push(currentLoginIndex);
+		history += (history === "" ? "" : ",") + String(currentLoginIndex);
 	}
-	
-	var file = { digest: digest, logins: logins, update: update, checked: true };
+
+	var logins2 = history.split(",").map(Number).map(function(i) {
+		return logins[i];
+	}).filter(defined);
+	var file = { digest: digest, history: history, logins: logins2, update: update, checked: true };
 	files[rpath] = file;
 	return [file, data];
 }
