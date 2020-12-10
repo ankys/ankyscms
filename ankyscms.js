@@ -674,14 +674,14 @@ var defaultFile = "index.html";
 var flagDeleteExtra = false;
 
 // caches
-var currentAttributeIndex = 0;
+var currentLoginIndex = 0;
 var configfiles = [];
 var configafiles = [];
 var lmconfigfile;
 var lmconfigafile;
-// attributes_history = [attribute : (time, name, email, description)]
-var attributesHistory = [];
-// files_history = [file : (rpath, attribute, digest)]
+// logins_history = [login : (time, name, email, description)]
+var logins = [];
+// files = rpath -> file : (digest, history)]
 var filesHistory = [];
 var lastCheckTime = null;
 // users = id -> user : (name, email, description)
@@ -840,21 +840,21 @@ function loadCache(path, tag) {
 
 	var kvlist = SkvtextParse(text);
 	var kvobj = KvlistToObject(kvlist);
-	var attributesT = kvobj["attributes_history"];
-	if (defined(attributesT)) {
-		attributesHistory = TSVFParse(attributesT, ["time", "name", "email", "description"]);
-		attributesHistory.forEach(function(attribute) {
-			attribute.time = Number(attribute.time);
+	var loginsT = kvobj["logins"];
+	if (defined(loginsT)) {
+		logins = TSVFParse(loginsT, ["time", "name", "email", "description"]);
+		logins.forEach(function(login) {
+			login.time = Number(login.time);
 		});
-		if (attributesHistory.length > 0) {
-			lastCheckTime = attributesHistory[attributesHistory.length - 1].time;
+		if (logins.length > 0) {
+			lastCheckTime = logins[logins.length - 1].time;
 		}
 	}
 	var filesT = kvobj["files_history"];
 	if (defined(filesT)) {
-		filesHistory = TSVFParse(filesT, ["path", "attribute", "digest"]);
+		filesHistory = TSVFParse(filesT, ["path", "login", "digest"]);
 		filesHistory.forEach(function(file) {
-			file.attribute = Number(file.attribute);
+			file.login = Number(file.login);
 		});
 	}
 	var usersT = kvobj.users;
@@ -878,8 +878,8 @@ function loadCache(path, tag) {
 }
 function saveCache(path, tag) {
 	var kvlist = [
-		"attributes_history", TSVFDump(attributesHistory, ["time", "name", "email", "description"]),
-		"files_history", TSVFDump(filesHistory, ["path", "attribute", "digest"]),
+		"logins", TSVFDump(logins, ["time", "name", "email", "description"]),
+		"files_history", TSVFDump(filesHistory, ["path", "login", "digest"]),
 		"users", TSVFKDump(users, ["name", "email", "description"], "id"),
 		"files", TSVFKDump(files, ["ctime", "mtime", "muser", "digest"], "path"),
 		"afiles", TSVFKDump(afiles, ["cache"], "path"),
@@ -1085,7 +1085,7 @@ function checkFile(rpath, tag) {
 
 			digest = calcMd5Base64(data);
 		}
-		var file = { path: rpath, attribute: currentAttributeIndex, digest: digest };
+		var file = { path: rpath, login: currentLoginIndex, digest: digest };
 		filesHistory.push(file);
 	}
 	
@@ -1755,9 +1755,9 @@ function deleteExtra(rpath, tag) {
 
 	userId = registerUser(currentUserName, currentUserEmail, currentUserDescription);
 	callback("USER", undefined, [currentUserName, currentUserEmail, currentUserDescription]);
-	var attribute = { time: currentTime, name: currentUserName, email: currentUserEmail, description: currentUserDescription };
-	attributesHistory.push(attribute);
-	currentAttributeIndex = attributesHistory.length - 1;
+	var login = { time: currentTime, name: currentUserName, email: currentUserEmail, description: currentUserDescription };
+	logins.push(login);
+	currentLoginIndex = logins.length - 1;
 	
 	initializeMacroText();
 	checkConfigFiles();
