@@ -682,8 +682,6 @@ var lmconfigafile;
 var lastCheckTime = null;
 // logins = [login : (time, name, email, description)]
 var logins = [];
-// users = id -> user : (name, email, description)
-var users = {};
 // templates : name -> template : (rpath, file, afile, commands, cache)
 var templates = {};
 // files = rpath -> file : (digest, history, logins, update, checked)
@@ -847,10 +845,6 @@ function loadCache(path, tag) {
 			lastCheckTime = logins[logins.length - 1].time;
 		}
 	}
-	var usersT = kvobj.users;
-	if (defined(users)) {
-		users = TSVFKParse(usersT, ["name", "email", "description"], "id");
-	}
 	var filesT = kvobj["files"];
 	if (defined(files)) {
 		files = TSVFKParse(filesT, ["digest", "history"], "path");
@@ -863,32 +857,11 @@ function loadCache(path, tag) {
 function saveCache(path, tag) {
 	var kvlist = [
 		"logins", TSVFDump(logins, ["time", "name", "email", "description"]),
-		"users", TSVFKDump(users, ["name", "email", "description"], "id"),
 		"files", TSVFKDump(files, ["digest", "history"], "path"),
 		"afiles", TSVFKDump(afiles, ["cache"], "path"),
 	];
 	var text = SkvtextDump(kvlist);
 	saveText(path, text, "utf8", tag, "SAVECACHE", "NGSAVECACHE");
-}
-
-function searchUsers(name, email, description) {
-	var ids = Object.keys(users).sort();
-	return ids.filter(function(id) {
-		var user2 = users[id];
-		return user2.name === name && user2.email === email;
-	});
-}
-function registerUser(name, email, description) {
-	var userIds = searchUsers(name, email, description);
-	if (userIds.length > 0) {
-		userId = Math.min.apply(null, userIds);
-	} else {
-		var usersIdMax = Math.max.apply(null, Object.keys(users));
-		userId = usersIdMax < 0 ? 0 : usersIdMax + 1;
-	}
-	var user = { name: name, email: email, description: description };
-	users[userId] = user;
-	return userId;
 }
 
 // command text
@@ -1774,7 +1747,6 @@ function deleteExtra(rpath, tag) {
 
 	loadCache(cacheFile);
 
-	userId = registerUser(currentUserName, currentUserEmail, currentUserDescription);
 	callback("USER", undefined, [currentUserName, currentUserEmail, currentUserDescription]);
 	var login = { time: currentTime, name: currentUserName, email: currentUserEmail, description: currentUserDescription };
 	logins.push(login);
