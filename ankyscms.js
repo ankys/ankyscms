@@ -696,8 +696,7 @@ var afiles = {};
 // afile : (template, commands, info, default_dest)
 var srcfiles = [];
 // dest_files : dest_file list
-// dest_file : (path, rpath, src_file, file, afile)
-// file : (ctime, mtime, muser, update)
+// dest_file : (path, rpath, src_file, dependings : file list, afile)
 // afile : (parent, depend, title, description, macros)
 var destfiles = [];
 // dest_paths = rpath -> dest_file
@@ -1526,12 +1525,12 @@ function checkDest(destfile, tag) {
 		var path = (m = depend.match(/^\/(.*?)$/)) ? m[1] : PathCombine(destpath, depend);
 		return GlobToRegExp(path);
 	});
+	var dependings = [fileSrc];
 	if (regexsSrc.length > 0) {
 		for (var path in files) {
 			var file = files[path];
-			if (!(file.mtime > lmfile.mtime)) continue;
 			if (regexsSrc.some(function(regex) { return regex.test(path) })) {
-				lmfile = file;
+				dependings.push(file);
 			}
 		}
 	}
@@ -1540,18 +1539,33 @@ function checkDest(destfile, tag) {
 			var path = destfile.path;
 			var srcfile = destfile.srcfile;
 			var file = srcfile.file;
-			if (!(file.mtime > lmfile.mtime)) return;
 			if (regexsDest.some(function(regex) { return regex.test(path) })) {
-				lmfile = file;
+				dependings.push(file);
 			}
 		});
 	}
-	var ctime = fileSrc.ctime;
-	var mtime = defined(afile) ? lmfile.mtime : fileSrc.mtime;
-	var muser = defined(afile) ? lmfile.muser : fileSrc.muser;
-	var update = lmfile.update;
-	var info = { ctime: ctime, mtime: mtime, muser: muser, update: update };
-	destfile.file = info;
+	var update = dependings.some(function(file) {
+		return file.update;
+	});
+	var history = [];
+	var loginsSet = {};
+	dependings.forEach(function(file) {
+		file.logins.forEach(function(login) {
+			var time = login.time;
+			if (!loginsSet[time]) {
+				history.push(login);
+				loginsSet[time] = true;
+			}
+		});
+	});
+	history.sort(function(a, b) {
+		return b.time - a.time;
+	});
+	var mtime = history[history.length - 1].time;
+	destfile.dependings = dependings;
+	destfile.update = update;
+	destfile.history = history;
+	destfile.mtime = mtime;
 }
 function checkDests(tag) {
 	destfiles.forEach(function(destfile) {
@@ -1564,8 +1578,16 @@ function convertFiles(tag) {
 	filesInfo = {};
 	destfiles.forEach(function(destfile) {
 		var path = destfile.path;
-		var file = destfile.file;
-		var info = { ctime: new Date(file.ctime), ctimev: file.ctime, mtime: new Date(file.mtime), mtimev: file.mtime, muser: users[file.muser] || {} };
+		var fileSrc = destfile.srcfile.file;
+		var historySrc = fileSrc.logins;
+		var history = destfile.history;
+		var create = historySrc[0];
+		var modify = history[history.length - 1];
+		var ctime = create.time;
+		var cuser = create.user;
+		var mtime = modify.time;
+		var muser = modify.user;
+		var info = { ctime: new Date(ctime), ctimev: ctime, mtime: new Date(mtime), mtimev: mtime, muser: muser };
 		filesInfo[path] = info;
 	});
 	afilesInfo = {};
@@ -1591,11 +1613,11 @@ function convertFile(srcfile, tag) {
 	var destfiles = srcfile.dests;
 
 	destfiles.forEach(function(destfile) {
-		var file = destfile.file;
 		var destrpath = destfile.rpath;
-		var mtime = file.mtime;
+		var update = destfile.update;
+		var mtime = destfile.mtime;
 
-		if (!file.update && FS.existsSync(destrpath) && mtime+30 >= FS.statSync(destrpath).mtimeMs) {
+		if (!update && FS.existsSync(destrpath) && mtime+30 >= FS.statSync(destrpath).mtimeMs) {
 			callback("SKIPFILE", tag, [destrpath, srcrpath]);
 			return;
 		}
@@ -1636,10 +1658,10 @@ function convertAFile(srcfile, tag) {
 	}
 
 	destfiles.forEach(function(destfile) {
-		var file = destfile.file;
 		var destrpath = destfile.rpath;
-		var mtime = file.mtime;
-		if (!file.update && FS.existsSync(destrpath) && mtime+30 >= FS.statSync(destrpath).mtimeMs) {
+		var update = destfile.update;
+		var mtime = destfile.mtime;
+		if (!update && FS.existsSync(destrpath) && mtime+30 >= FS.statSync(destrpath).mtimeMs) {
 			callback("SKIPFILE", tag, [destrpath, srcrpath]);
 			return;
 		}
@@ -1667,16 +1689,26 @@ function convertAFile(srcfile, tag) {
 		var parent = destafile.parent;
 		var title = destafile.title;
 		var description = destafile.description;
+		var fileSrc = destfile.srcfile.file;
+		var historySrc = fileSrc.logins;
+		var history = destfile.history;
+		var create = historySrc[0];
+		var modify = history[history.length - 1];
+		var ctime = create.time;
+		var cuser = create.user;
+		var mtime = modify.time;
+		var muser = modify.user;
+
 		var mtstate = destafile.state;
 		// macros
 		mt.restoreMacros(mtstate);
 		mt.addMacro("files_info", filesInfo);
 		mt.addMacro("afiles_info", afilesInfo);
-		mt.addMacro("ctime", new Date(file.ctime));
-		mt.addMacro("ctimev", file.ctime);
-		mt.addMacro("mtime", new Date(file.mtime));
-		mt.addMacro("mtimev", file.mtime);
-		mt.addMacro("muser", users[file.muser] || {});
+		mt.addMacro("ctime", new Date(ctime));
+		mt.addMacro("ctimev", ctime);
+		mt.addMacro("mtime", new Date(mtime));
+		mt.addMacro("mtimev", mtime);
+		mt.addMacro("muser", muser);
 
 		// node
 		var node;
