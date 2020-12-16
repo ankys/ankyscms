@@ -679,12 +679,11 @@ var configfiles = [];
 var configafiles = [];
 var lmconfigfile;
 var lmconfigafile;
-var lastCheckTime = null;
 // logins = [login : (time, name, email, description)]
 var logins = [];
 // templates : name -> template : (rpath, file, afile, commands, cache)
 var templates = {};
-// files = rpath -> file : (digest, history, logins, update, checked)
+// files = rpath -> file : (lmtime, digest, history, logins, update, checked)
 var files = {};
 // afiles : rpath -> afile : (cache, info, checked)
 // info : (macro, dest, title, description, parent, depend)
@@ -841,13 +840,14 @@ function loadCache(path, tag) {
 		logins.forEach(function(login) {
 			login.time = Number(login.time);
 		});
-		if (logins.length > 0) {
-			lastCheckTime = logins[logins.length - 1].time;
-		}
 	}
 	var filesT = kvobj["files"];
 	if (defined(files)) {
-		files = TSVFKParse(filesT, ["digest", "history"], "path");
+		files = TSVFKParse(filesT, ["lmtime", "digest", "history"], "path");
+		for (var rpath in files) {
+			var file = files[rpath];
+			file.lmtime = Number(file.lmtime);
+		}
 	}
 	var afilesT = kvobj["afiles"];
 	if (defined(afiles)) {
@@ -857,7 +857,7 @@ function loadCache(path, tag) {
 function saveCache(path, tag) {
 	var kvlist = [
 		"logins", TSVFDump(logins, ["time", "name", "email", "description"]),
-		"files", TSVFKDump(files, ["digest", "history"], "path"),
+		"files", TSVFKDump(files, ["lmtime", "digest", "history"], "path"),
 		"afiles", TSVFKDump(afiles, ["cache"], "path"),
 	];
 	var text = SkvtextDump(kvlist);
@@ -993,25 +993,28 @@ function scanCommandLine(line, eol, commands, infos, caches, values, tag) {
 
 function checkFile(rpath, tag) {
 	callback("CHECKFILE", tag, [rpath]);
-	var data, digest, history, update;
+	var data, lmtime, digest, history, update;
 	// check update
 	var file = files[rpath];
+	if (defined(file) && file.checked) {
+		// checked
+		return [file];
+	}
+
+	var lmtimeC = FS.statSync(rpath).mtimeMs;
 	if (defined(file)) {
-		if (file.checked) {
-			// checked
-			return [file];
-		}
+		lmtime = file.lmtime;
 		digest = file.digest;
 		history = file.history;
 		
-		var c_mtime = FS.statSync(rpath).mtimeMs;
-		if (lastCheckTime && c_mtime > lastCheckTime) {
+		if (lmtimeC > lmtime) {
+			lmtime = lmtimeC;
 			data = loadFile(rpath, tag);
 			if (!defined(data)) return [];
 
-			var c_digest = calcMd5Base64(data);
-			if (c_digest !== digest) {
-				digest = c_digest;
+			var digestC = calcMd5Base64(data);
+			if (digestC !== digest) {
+				digest = digestC;
 				update = true;
 				callback("UPDATEDFILE", tag, [rpath]);
 			} else {
@@ -1030,6 +1033,7 @@ function checkFile(rpath, tag) {
 	
 	// update file
 	if (update) {
+		lmtime = lmtimeC;
 		if (!defined(digest)) {
 			data = loadFile(rpath, tag);
 			if (!defined(data)) return [];
@@ -1042,7 +1046,7 @@ function checkFile(rpath, tag) {
 	var logins2 = history.split(",").map(Number).map(function(i) {
 		return logins[i];
 	}).filter(defined);
-	var file = { digest: digest, history: history, logins: logins2, update: update, checked: true };
+	var file = { lmtime: lmtime, digest: digest, history: history, logins: logins2, update: update, checked: true };
 	files[rpath] = file;
 	return [file, data];
 }
@@ -1520,6 +1524,9 @@ function checkDest(destfile, tag) {
 	var update = dependings.some(function(file) {
 		return file.update;
 	});
+	var lmtime = Math.max.apply(null, dependings.map(function(file) {
+		return file.lmtime;
+	}));
 	var history = [];
 	var loginsSet = {};
 	dependings.forEach(function(file) {
@@ -1534,11 +1541,10 @@ function checkDest(destfile, tag) {
 	history.sort(function(a, b) {
 		return b.time - a.time;
 	});
-	var mtime = history[history.length - 1].time;
 	destfile.dependings = dependings;
 	destfile.update = update;
+	destfile.lmtime = lmtime;
 	destfile.history = history;
-	destfile.mtime = mtime;
 }
 function checkDests(tag) {
 	destfiles.forEach(function(destfile) {
@@ -1588,15 +1594,15 @@ function convertFile(srcfile, tag) {
 	destfiles.forEach(function(destfile) {
 		var destrpath = destfile.rpath;
 		var update = destfile.update;
-		var mtime = destfile.mtime;
+		var lmtime = destfile.lmtime;
 
-		if (!update && FS.existsSync(destrpath) && mtime+30 >= FS.statSync(destrpath).mtimeMs) {
+		if (!update && FS.existsSync(destrpath) && lmtime > FS.statSync(destrpath).mtimeMs) {
 			callback("SKIPFILE", tag, [destrpath, srcrpath]);
 			return;
 		}
 		callback("CREATEFILE", tag, [destrpath, srcrpath]);
 		copyFile(srcrpath, destrpath, tag);
-		FS.utimesSync(destrpath, new Date(mtime), new Date(mtime));
+		FS.utimesSync(destrpath, new Date(lmtime), new Date(lmtime));
 	});
 }
 function convertAFile(srcfile, tag) {
@@ -1633,8 +1639,8 @@ function convertAFile(srcfile, tag) {
 	destfiles.forEach(function(destfile) {
 		var destrpath = destfile.rpath;
 		var update = destfile.update;
-		var mtime = destfile.mtime;
-		if (!update && FS.existsSync(destrpath) && mtime+30 >= FS.statSync(destrpath).mtimeMs) {
+		var lmtime = destfile.lmtime;
+		if (!update && FS.existsSync(destrpath) && lmtime >= FS.statSync(destrpath).mtimeMs) {
 			callback("SKIPFILE", tag, [destrpath, srcrpath]);
 			return;
 		}
@@ -1697,7 +1703,7 @@ function convertAFile(srcfile, tag) {
 		var text = mt.evaluateAsString(node);
 
 		saveText(destrpath, text, "utf8", tag);
-		FS.utimesSync(destrpath, new Date(mtime), new Date(mtime));
+		FS.utimesSync(destrpath, new Date(lmtime), new Date(lmtime));
 	});
 }
 
