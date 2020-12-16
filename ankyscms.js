@@ -1478,6 +1478,23 @@ function checkDest(destfile, tag) {
 		return GlobToRegExp(path);
 	});
 	var dependings = [fileSrc];
+	configfiles.forEach(function(path) {
+		var file = files[path];
+		if (!defined(file)) return;
+		dependings.push(file);
+	});
+	if (defined(afile)) {
+		configafiles.forEach(function(path) {
+			var file = files[path];
+			if (!defined(file)) return;
+			dependings.push(file);
+		});
+		var srcafile = srcfile.afile;
+		var template = srcafile.template;
+		if (defined(template)) {
+			dependings.push(template.file);
+		}
+	}
 	if (regexsSrc.length > 0) {
 		for (var path in files) {
 			var file = files[path];
@@ -1499,28 +1516,9 @@ function checkDest(destfile, tag) {
 	var update = dependings.some(function(file) {
 		return file.update;
 	});
-	var lmtimeSrc = fileSrc.lmtime;
-	var lmtimeConfigfiles = Math.max.apply(null, configfiles.map(function(path) {
-		var file = files[path];
-		if (!defined(file)) return;
+	var lmtime = Math.max.apply(null, dependings.map(function(file) {
 		return file.lmtime;
-	}).filter(defined));
-	if (defined(afile)) {
-		var lmtimeConfigafiles = Math.max.apply(null, configafiles.map(function(path) {
-			var file = files[path];
-			if (!defined(file)) return;
-			return file.lmtime;
-		}).filter(defined));
-		var srcafile = srcfile.afile;
-		var template = srcafile.template;
-		if (defined(template)) {
-			var lmtimeTemplate = template.file.lmtime;
-		}
-		var lmtimeDependings = Math.max.apply(null, dependings.map(function(file) {
-			return file.lmtime;
-		}));
-	}
-	var lmtime = Math.max.apply(null, [lmtimeSrc, lmtimeConfigfiles, lmtimeConfigafiles, lmtimeTemplate, lmtimeDependings].filter(defined));
+	}));
 	var history = [];
 	var loginsSet = {};
 	dependings.forEach(function(file) {
