@@ -653,7 +653,6 @@ var flagAllowSystem = false;
 // default_macros : [macro]
 // macro = (text  string) * (posmap : posmap)
 var macrosDefault = [];
-var userId = 0;
 var userName = process.env.USERNAME || process.env.USER || "";
 var hostName = process.env.HOSTNAME || process.env.HOST || "";
 var currentUserName = userName;
@@ -677,8 +676,6 @@ var flagDeleteExtra = false;
 var currentLoginIndex = 0;
 var configfiles = [];
 var configafiles = [];
-var lmconfigfile;
-var lmconfigafile;
 // logins = [login : (time, name, email, description)]
 var logins = [];
 // templates : name -> template : (rpath, file, afile, commands, cache)
@@ -1093,25 +1090,13 @@ function checkFileAFile(rpath, commands, tag) {
 	}
 	return [file, afile];
 }
-function getLmfile(a, b) {
-	return (
-		!defined(a) ? b :
-		!defined(b) ? a :
-		b.mtime > a.mtime ? b :
-		a
-	);
-}
 
 function checkConfigFiles() {
 	configfiles.forEach(function(path) {
 		var [file] = checkFile(path);
-		if (!defined(file)) return;
-		lmconfigfile = getLmfile(lmconfigfile, file);
 	});
 	configafiles.forEach(function(path) {
 		var [file] = checkFile(path);
-		if (!defined(file)) return;
-		lmconfigafile = getLmfile(lmconfigafile, file);
 	});
 }
 function checkTemplateRule(rule) {
@@ -1480,16 +1465,6 @@ function checkDest(destfile, tag) {
 	var fileSrc = srcfile.file;
 	var afile = destfile.afile;
 
-	var lmfile = fileSrc;
-	lmfile = getLmfile(lmfile, lmconfigfile);
-	if (defined(afile)) {
-		lmfile = getLmfile(lmfile, lmconfigafile);
-		var srcafile = srcfile.afile;
-		var template = srcafile.template;
-		if (defined(template)) {
-			lmfile = getLmfile(lmfile, template.file);
-		}
-	}
 	var depends = defined(afile) ? afile.depends : [];
 	var dependsSrc = depends;
 	var dependsDest = depends;
@@ -1524,9 +1499,28 @@ function checkDest(destfile, tag) {
 	var update = dependings.some(function(file) {
 		return file.update;
 	});
-	var lmtime = Math.max.apply(null, dependings.map(function(file) {
+	var lmtimeSrc = fileSrc.lmtime;
+	var lmtimeConfigfiles = Math.max.apply(null, configfiles.map(function(path) {
+		var file = files[path];
+		if (!defined(file)) return;
 		return file.lmtime;
-	}));
+	}).filter(defined));
+	if (defined(afile)) {
+		var lmtimeConfigafiles = Math.max.apply(null, configafiles.map(function(path) {
+			var file = files[path];
+			if (!defined(file)) return;
+			return file.lmtime;
+		}).filter(defined));
+		var srcafile = srcfile.afile;
+		var template = srcafile.template;
+		if (defined(template)) {
+			var lmtimeTemplate = template.file.lmtime;
+		}
+		var lmtimeDependings = Math.max.apply(null, dependings.map(function(file) {
+			return file.lmtime;
+		}));
+	}
+	var lmtime = Math.max.apply(null, [lmtimeSrc, lmtimeConfigfiles, lmtimeConfigafiles, lmtimeTemplate, lmtimeDependings].filter(defined));
 	var history = [];
 	var loginsSet = {};
 	dependings.forEach(function(file) {
