@@ -1004,7 +1004,7 @@ function checkFile(rpath, tag) {
 		digest = file.digest;
 		history = file.history;
 		
-		if (lmtimeC > lmtime) {
+		if (lmtimeC >= lmtime + 30) {
 			lmtime = lmtimeC;
 			data = loadFile(rpath, tag);
 			if (!defined(data)) return [];
@@ -1588,7 +1588,7 @@ function convertFile(srcfile, tag) {
 		var update = destfile.update;
 		var lmtime = destfile.lmtime;
 
-		if (!update && FS.existsSync(destrpath) && lmtime > FS.statSync(destrpath).mtimeMs) {
+		if (!update && FS.existsSync(destrpath) && lmtime + 30 >= FS.statSync(destrpath).mtimeMs) {
 			callback("SKIPFILE", tag, [destrpath, srcrpath]);
 			return;
 		}
@@ -1632,7 +1632,7 @@ function convertAFile(srcfile, tag) {
 		var destrpath = destfile.rpath;
 		var update = destfile.update;
 		var lmtime = destfile.lmtime;
-		if (!update && FS.existsSync(destrpath) && lmtime >= FS.statSync(destrpath).mtimeMs) {
+		if (!update && FS.existsSync(destrpath) && lmtime + 30 >= FS.statSync(destrpath).mtimeMs) {
 			callback("SKIPFILE", tag, [destrpath, srcrpath]);
 			return;
 		}
