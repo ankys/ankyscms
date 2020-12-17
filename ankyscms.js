@@ -1475,7 +1475,7 @@ function checkDest(destfile, tag) {
 		});
 	});
 	history.sort(function(a, b) {
-		return b.time - a.time;
+		return a.time - b.time;
 	});
 	destfile.dependings = dependings;
 	destfile.update = update;
