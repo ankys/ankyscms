@@ -72,30 +72,6 @@ function TSVEscape(obj) {
 	var str2 = str.replace(re, escape);
 	return "\"" + str2 + "\"";
 }
-function TSVFDump(table, fields) {
-	// return TextDumpFieldedTable(table, fields, "\n", "\t", identity, TSVEscape, true);
-	var delimiter = "\n";
-	var separator = "\t";
-	var escapeValue = TSVEscape;
-	var fieldsE = fields.map(function(field) {
-		var fieldE = escapeValue(field);
-		return fieldE;
-	});
-	var line0 = fieldsE.join(separator);
-	var linesE = table.map(function(row) {
-		var valuesE = fields.map(function(field) {
-			var value = row[field];
-			var valueE = value == undefined || value == null ? "" : escapeValue(value);
-			return valueE;
-		});
-		var line = valuesE.join(separator);
-		return line;
-	});
-	linesE.unshift(line0);
-	linesE.push("");
-	var text = linesE.join(delimiter);
-	return text;
-}
 function TSVFKDump(table, fields, keyName) {
 	// return TextDumpFieldedTable(table, fields, "\n", "\t", identity, TSVEscape, true);
 	var delimiter = "\n";
@@ -143,39 +119,6 @@ function TSVUnescape(str) {
 	var str2 = m[1];
 	var re = /\\r|\\n|\\t|\\\\/g;
 	return str2.replace(re, unescape);
-}
-function TSVFParse(text, fields) {
-	// return TextParseFieldedTable(text, fields, /\x0D\x0A|\x0D|\x0A/g, "\t", identity, TSVUnescape, true);
-	var delimiter = "\n";
-	var separator = "\t";
-	var unescapeValue = TSVUnescape;
-	var lines = text.split(delimiter);
-	if (lines[lines.length - 1] === "") {
-		lines.pop();
-	}
-	var line0 = lines.shift();
-	var heads = line0.split(separator);
-	var headsU = heads.map(function(head) {
-		var headU = unescapeValue(head);
-		return headU;
-	});
-	var mapFieldIndex = {};
-	fields.forEach(function(field) {
-		var index = headsU.indexOf(field);
-		mapFieldIndex[field] = index;
-	});
-	var table = lines.map(function(line) {
-		var words = line.split(separator);
-		var obj = {};
-		fields.forEach(function(field) {
-			var index = mapFieldIndex[field];
-			var word = words[index];
-			var wordU = word === undefined ? null : unescapeValue(word);
-			obj[field] = wordU;
-		});
-		return obj;
-	});
-	return table;
 }
 function TSVFKParse(text, fields, keyName) {
 	// return TextParseFieldedTable(text, fields, /\x0D\x0A|\x0D|\x0A/g, "\t", identity, TSVUnescape, true);
@@ -673,10 +616,10 @@ var defaultFile = "index.html";
 var flagDeleteExtra = false;
 
 // caches
-var currentLoginIndex = 0;
+var currentLoginId = 0;
 var configfiles = [];
 var configafiles = [];
-// logins = [login : (time, name, email, description)]
+// logins = id -> login : (time, name, email, description)
 var logins = [];
 // templates : name -> template : (rpath, file, afile, commands, cache)
 var templates = {};
@@ -833,10 +776,11 @@ function loadCache(path, tag) {
 	var kvobj = KvlistToObject(kvlist);
 	var loginsT = kvobj["logins"];
 	if (defined(loginsT)) {
-		logins = TSVFParse(loginsT, ["time", "name", "email", "description"]);
-		logins.forEach(function(login) {
+		logins = TSVFKParse(loginsT, ["time", "name", "email", "description"], "#");
+		for (var id in logins) {
+			var login = logins[id];
 			login.time = Number(login.time);
-		});
+		}
 	}
 	var filesT = kvobj["files"];
 	if (defined(files)) {
@@ -853,7 +797,7 @@ function loadCache(path, tag) {
 }
 function saveCache(path, tag) {
 	var kvlist = [
-		"logins", TSVFDump(logins, ["time", "name", "email", "description"]),
+		"logins", TSVFKDump(logins, ["time", "name", "email", "description"], "#"),
 		"files", TSVFKDump(files, ["lmtime", "digest", "history"], "path"),
 		"afiles", TSVFKDump(afiles, ["cache"], "path"),
 	];
@@ -1037,10 +981,10 @@ function checkFile(rpath, tag) {
 
 			digest = calcMd5Base64(data);
 		}
-		history += (history === "" ? "" : ",") + String(currentLoginIndex);
+		history += (history === "" ? "" : ",") + currentLoginId;
 	}
 
-	var logins2 = history.split(",").map(Number).map(function(i) {
+	var logins2 = history.split(",").map(function(i) {
 		return logins[i];
 	}).filter(defined);
 	var file = { lmtime: lmtime, digest: digest, history: history, logins: logins2, update: update, checked: true };
@@ -1747,11 +1691,12 @@ function deleteExtra(rpath, tag) {
 
 	callback("USER", undefined, [currentUserName, currentUserEmail, currentUserDescription]);
 	var login = { time: currentTime, name: currentUserName, email: currentUserEmail, description: currentUserDescription };
-	logins.push(login);
-	currentLoginIndex = logins.length - 1;
-	logins.forEach(function(login) {
+	currentLoginId = Object.keys(logins).length == 0 ? "0" : String(Math.max.apply(null, Object.keys(logins).map(Number)) + 1);
+	logins[currentLoginId] = login;
+	for (var id in logins) {
+		var login = logins[id];
 		login.user = { name: login.name, email: login.email, description: login.description };
-	});
+	}
 	
 	initializeMacroText();
 	checkConfigFiles();
