@@ -18,9 +18,31 @@ var MacroText = require("./macrotext.js");
 function defined(obj) {
 	return obj !== undefined;
 }
+Array.max = function(array, func) {
+	if (func === undefined) {
+		func = function(a) { return a; };
+	}
+	var a = array[0];
+	var u = func(a);
+	for (var i = 1; i < array.length; i++) {
+		var b = array[i];
+		var v = func(b);
+		if (v > u) {
+			a = b;
+			u = v;
+		}
+	}
+	return a;
+}
 Array.prototype.mapA = function() {
 	var arrayList = Array.prototype.map.apply(this, arguments);
-	return Array.prototype.concat.apply([], arrayList);
+	var array2 = [];
+	arrayList.forEach(function(array) {
+		array.forEach(function(item) {
+			array2.push(item);
+		});
+	});
+	return array2;
 };
 Object.clone = function(obj) {
 	var obj2 = {};
@@ -1460,7 +1482,7 @@ function checkDest(destfile, tag) {
 	var update = dependings.some(function(file) {
 		return file.update;
 	});
-	var lmtime = Math.max.apply(null, dependings.map(function(file) {
+	var lmtime = Array.max(dependings.map(function(file) {
 		return file.lmtime;
 	}));
 	var history = [];
@@ -1691,7 +1713,7 @@ function deleteExtra(rpath, tag) {
 
 	callback("USER", undefined, [currentUserName, currentUserEmail, currentUserDescription]);
 	var login = { time: currentTime, name: currentUserName, email: currentUserEmail, description: currentUserDescription };
-	currentLoginId = Object.keys(logins).length == 0 ? "0" : String(Math.max.apply(null, Object.keys(logins).map(Number)) + 1);
+	currentLoginId = Object.keys(logins).length == 0 ? "0" : String(Array.max(Object.keys(logins).map(Number)) + 1);
 	logins[currentLoginId] = login;
 	for (var id in logins) {
 		var login = logins[id];
