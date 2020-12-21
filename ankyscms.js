@@ -33,7 +33,7 @@ Array.max = function(array, func) {
 		}
 	}
 	return a;
-}
+};
 Array.prototype.mapA = function() {
 	var arrayList = Array.prototype.map.apply(this, arguments);
 	var array2 = [];
