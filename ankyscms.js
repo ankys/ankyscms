@@ -1482,9 +1482,14 @@ function checkDest(destfile, tag) {
 	var update = dependings.some(function(file) {
 		return file.update;
 	});
-	var lmtime = Array.max(dependings.map(function(file) {
-		return file.lmtime;
-	}));
+	var lmtime;
+	if (defined(afile)) {
+		lmtime = Array.max(dependings.map(function(file) {
+			return file.lmtime;
+		}));
+	} else {
+		lmtime = fileSrc.lmtime;
+	}
 	var history = [];
 	var loginsSet = {};
 	dependings.forEach(function(file) {
