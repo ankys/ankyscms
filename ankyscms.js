@@ -389,13 +389,6 @@ function splitNameValue(line) {
 function calcMd5Base64(data) {
   return Crypto.createHash("md5").update(data).digest("base64").replace(/=*$/, "");
 }
-function normalizePath(path) {
-	var { dir: dir, base: name } = Path.parse(path);
-	if (name === defaultFile) {
-		path = Path.join(dir, ".");
-	}
-	return path;
-}
 function newLine(line, eol, tag) {
 	return { line: line, eol: eol, tag: tag };
 }
@@ -1202,6 +1195,13 @@ function checkSrcDir(rpath, tag) {
 }
 
 // macrotext
+function normalizePath(path) {
+	var { dir: dir, base: name } = Path.parse(path);
+	if (name === defaultFile) {
+		path = Path.join(dir, "./");
+	}
+	return path;
+}
 var rmacro_load_text = {
 	name: "load_text",
 	func: function(pathA) {
