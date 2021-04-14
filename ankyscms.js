@@ -1493,6 +1493,9 @@ function checkDest(destfile, tag) {
 	var history = [];
 	var loginsSet = {};
 	dependings.forEach(function(file) {
+		if (!file.logins) {
+			return;
+		}
 		file.logins.forEach(function(login) {
 			var time = login.time;
 			if (!loginsSet[time]) {
